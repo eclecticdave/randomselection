@@ -28,27 +28,35 @@ function wfRandomSelection() {
 function renderChosen( $input, $argv, &$parser ) {
     # Prevent caching
     $parser->disableCache();
+
+		$pick = 1;
+		if (isset($argv['pick'])) $pick = intval($argv['pick']);
  
     # Parse the options and calculate total weight
     $len = preg_match_all("/<option(?:(?:\\s[^>]*?)?\\sweight=[\"']?([^\\s>]+))?"
         . "(?:\\s[^>]*)?>([\\s\\S]*?)<\\/option>/", $input, $out);
-    $r = 0;
+    $tw = 0;
     for($i=0; $i<$len; $i++) {
         if(strlen($out[1][$i])==0) $out[1][$i] = 1;
         else $out[1][$i] = intval($out[1][$i]);
-        $r += $out[1][$i];
+        $tw += $out[1][$i];
     }
- 
-    # Choose an option at random
-    if($r <= 0) return "";
-    $r = mt_rand(1,$r);
-    for($i=0; $i<$len; $i++) {
-        $r -= $out[1][$i];
-        if($r <= 0) {
-            $input = $out[2][$i];
-            break;
-        }
-    }
+
+	$input = "";
+	for($j=0; $j<$pick; $j++) {
+		# Choose an option at random
+		if($tw <= 0) return "";
+		$r = mt_rand(1,$tw);
+		for($i=0; $i<$len; $i++) {
+			$r -= $out[1][$i];
+			if($r <= 0) {
+				$input .= $out[2][$i];
+				$tw -= $out[1][$i];
+				$out[1][$i] = 0; # Prevents this item being picked twice
+				break;
+			}
+		}
+	}
  
     # If running new parser, take the easy way out
     if( defined( 'Parser::VERSION' ) && version_compare( Parser::VERSION, '1.6.1', '>' ) ) {
